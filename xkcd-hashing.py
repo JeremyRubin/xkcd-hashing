@@ -1,41 +1,47 @@
-from skein import skein1024
-import os, string, random
+import multiprocessing, signal, time, skein, random, string
 
-goal = "5b4da95f5fa08280fc9879df44f418c8f9f12ba424b7757de02bbdfbae0d4c4fdf9317c80cc5fe04c6429073466cf29706b8c25999ddd2f6540d4475cc977b87f4757be023f19b8f4035d7722886b78869826de916a79cf9c94cc79cd4347d24b567aa3e2390a573a373a48a5e676640c79cc70197e1c5e7f902fb53ca1858b6"
-goal = int(goal, 16)
-count = 0
+TARGET = '5b4da95f5fa08280fc9879df44f418c8f9f12ba424b7757de02bbdfbae0d4c4fd' + \
+	'f9317c80cc5fe04c6429073466cf29706b8c25999ddd2f6540d4475cc977b87f4757be' + \
+	'023f19b8f4035d7722886b78869826de916a79cf9c94cc79cd4347d24b567aa3e2390' + \
+	'a573a373a48a5e676640c79cc70197e1c5e7f902fb53ca1858b6'
 
-while True:
-	# Random Bytes
-	# data_guess = os.urandom(1024)        # 1024 bytes
-	# hash.update(data_guess)
+TARGET = int(TARGET, 16)
 
-	# Random Ascii/Digit String
-	data_guess = ''.join(random.choice(string.ascii_letters + string.digits) for x in range(random.randint(512, 1536)))
-	encoded_guess = data_guess.encode('latin-1')
+def init_worker():
+	signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-	digest = skein1024(encoded_guess).hexdigest()
+def run_worker():
+	best = float('inf')
+	while True:
+		# Random Bytes
+		# data_guess = os.urandom(1024)		   # 1024 bytes
+		guess = ''.join(random.choice(string.ascii_letters + string.digits)
+			for x in range(random.randint(512, 1536)))
+		encoded = guess.encode('utf-8')
+		digest = int(skein.skein1024(encoded).hexdigest(), 16)
+		diff = bin(digest ^ TARGET).count('1')
+		if diff < best:
+			best = diff
+			print('Found new best input with diff [%.3d]: \"%s\"' %
+				(diff, guess))
 
-	bit_diff_count = bin(int(digest, 16) ^ goal).count('1')
+def main():
+	run_worker()
+	cpus = multiprocessing.cpu_count()
+	pool = multiprocessing.Pool(cpus, init_worker)
+	for i in range(cpus):
+		pool.apply_async(run_worker)
+	try:
+		while True:
+			time.sleep(100)
+	except KeyboardInterrupt:
+		print('Terminating...')
+		pool.terminate()
+		pool.join()
+	else:
+		print('Quitting...')
+		pool.close()
+		pool.join()
 
-	if bit_diff_count <= 401:
-		print(bit_diff_count)
-		print(data_guess)
-		print("Yay!!")
-
-	if (count % 500000 == 0):
-		print("Running...")
-
-	count += 1
-
-
-
-
-
-
-
-
-
-
-
-
+if __name__ == '__main__':
+	main()
