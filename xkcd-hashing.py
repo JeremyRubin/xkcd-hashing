@@ -8,6 +8,8 @@ TARGET = '5b4da95f5fa08280fc9879df44f418c8f9f12ba424b7757de02bbdfbae0d4c4fd' + \
 
 TARGET = int(TARGET, 16)
 
+RANDOM_BIT_LEN = 512
+
 def init_worker():
 	signal.signal(signal.SIGINT, signal.SIG_IGN)
 
@@ -19,11 +21,9 @@ def submit(word):
 	
 def run_worker():
 	best = float('inf')
+	r = random.SystemRandom()
 	while True:
-		# Random Bytes
-		# data_guess = os.urandom(1024)		   # 1024 bytes
-		guess = ''.join(random.choice(string.ascii_letters + string.digits)
-			for x in range(random.randint(512, 1536)))
+		guess = hex(r.getrandbits(RANDOM_BIT_LEN))[2:]
 		encoded = guess.encode('utf-8')
 		digest = int(skein.skein1024(encoded).hexdigest(), 16)
 		diff = bin(digest ^ TARGET).count('1')
