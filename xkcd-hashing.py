@@ -1,4 +1,4 @@
-from skein import skein256, skein512, skein1024
+from skein import skein1024
 import os, string, random
 
 def simple_diff(a,b):
