@@ -1,4 +1,5 @@
-import multiprocessing, signal, time, skein, random, string
+#!/usr/bin/env python3
+import multiprocessing, signal, time, skein, random, string, urllib.request, urllib.parse
 
 TARGET = '5b4da95f5fa08280fc9879df44f418c8f9f12ba424b7757de02bbdfbae0d4c4fd' + \
 	'f9317c80cc5fe04c6429073466cf29706b8c25999ddd2f6540d4475cc977b87f4757be' + \
@@ -10,6 +11,12 @@ TARGET = int(TARGET, 16)
 def init_worker():
 	signal.signal(signal.SIGINT, signal.SIG_IGN)
 
+def submit(word):
+	url = "http://almamater.xkcd.com/?edu=mit.edu"
+	data = urllib.parse.urlencode({'hashable': word})
+	binarydata = data.encode('ascii')
+	urllib.request.urlopen(url, binarydata)
+	
 def run_worker():
 	best = float('inf')
 	while True:
@@ -22,6 +29,7 @@ def run_worker():
 		diff = bin(digest ^ TARGET).count('1')
 		if diff < best:
 			best = diff
+			submit(guess)
 			print('Found new best input with diff [%.3d]: \"%s\"' %
 				(diff, guess))
 
